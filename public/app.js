@@ -14,7 +14,6 @@ let sliderInterval;
 
 const show = (id) => document.getElementById(id).classList.remove('hidden');
 
-// Update fungsi hide agar menghentikan slider saat ganti halaman
 const hide = (id) => {
     document.getElementById(id).classList.add('hidden');
     if (id === 'home-view' && sliderInterval) {
@@ -58,12 +57,9 @@ async function loadLatest() {
             }
 
             if (combinedData && combinedData.length > 0) {
-                // LOGIKA BARU UNTUK SLIDER HANGAT
                 if (i === 0) {
-                    // AMBIL 10 DATA UNTUK SLIDER
                     let sliderData = combinedData.slice(0, 10);
                     
-                    // FETCH DETAIL ASLI (REAL DATA: SKOR & TAHUN) SECARA BACKGROUND
                     const enrichedData = await Promise.all(sliderData.map(async (item) => {
                         try {
                             const detailRes = await fetch(`${API_BASE}/detail?url=${encodeURIComponent(item.url)}`);
@@ -85,7 +81,6 @@ async function loadLatest() {
 
                     renderHeroSlider(section.title, enrichedData, homeContainer);
                 } 
-                // LOGIKA LAMA UNTUK SCROLL HORIZONTAL
                 else {
                     if (combinedData.length < 6) {
                         combinedData = [...combinedData, ...combinedData, ...combinedData]; 
@@ -105,7 +100,6 @@ function removeDuplicates(array, key) {
     return [ ...new Map(array.map(item => [item[key], item])).values() ];
 }
 
-// FUNGSI BARU UNTUK RENDER SLIDER
 function renderHeroSlider(title, data, container) {
     const sectionContainer = document.createElement('div');
     sectionContainer.className = 'hero-section-container';
@@ -113,7 +107,9 @@ function renderHeroSlider(title, data, container) {
     const sliderDiv = document.createElement('div');
     sliderDiv.className = 'hero-slider';
 
-    const slidesHtml = data.map((anime, index) => {
+    const loopData = [...data, data[0]];
+
+    const slidesHtml = loopData.map((anime, index) => {
         const score = anime.score || 'N/A';
         const type = anime.type || 'Anime';
         const year = anime.year || 'Unknown';
@@ -143,7 +139,6 @@ function renderHeroSlider(title, data, container) {
     sliderDiv.innerHTML = `<div class="hero-wrapper" id="heroWrapper">${slidesHtml}</div>`;
     sectionContainer.appendChild(sliderDiv);
     
-    // Memastikan letak slider ada di urutan paling atas beranda
     if (container.firstChild) {
         container.insertBefore(sectionContainer, container.firstChild);
     } else {
@@ -152,25 +147,30 @@ function renderHeroSlider(title, data, container) {
 
     const wrapper = document.getElementById('heroWrapper');
     let currentSlide = 0;
-    const totalSlides = data.length;
+    const totalSlides = loopData.length;
 
     if (sliderInterval) {
         clearInterval(sliderInterval);
     }
 
-    // Geser setiap 5 detik
     sliderInterval = setInterval(() => {
+        if (!wrapper) return;
+        
         currentSlide++;
-        if (currentSlide >= totalSlides) {
-            currentSlide = 0;
-        }
-        if(wrapper) {
-            wrapper.style.transform = `translateX(-${currentSlide * 100}%)`;
+        wrapper.style.transition = 'transform 0.5s ease-in-out';
+        wrapper.style.transform = `translateX(-${currentSlide * 100}%)`;
+
+        if (currentSlide === totalSlides - 1) {
+            setTimeout(() => {
+                if (!wrapper) return;
+                wrapper.style.transition = 'none';
+                currentSlide = 0;
+                wrapper.style.transform = `translateX(0)`;
+            }, 500); 
         }
     }, 5000); 
 }
 
-// SEMUA FUNGSI DI BAWAH INI ADALAH KODE LAMA DAN TIDAK ADA YANG BERUBAH
 function renderSection(title, data, container) {
     const sectionDiv = document.createElement('div');
     sectionDiv.className = 'category-section';
@@ -256,6 +256,7 @@ async function handleSearch(manualQuery = null) {
     }
 }
 
+// BUG EPISODE FIX (Mengabaikan angka dari "Season 2", dll)
 async function loadDetail(url) {
     loader(true);
     try {
@@ -291,8 +292,15 @@ async function loadDetail(url) {
         let totalEpCount = isEpsExist ? data.episodes.length : 0;
         
         if (isEpsExist) {
-            const match = data.episodes[0].title.match(/\d+(\.\d+)?/);
-            newestEpNum = match ? match[0] : totalEpCount;
+            let firstEpTitle = data.episodes[0].title;
+            // FIX: Cari kata Episode/Ep/Eps terlebih dahulu agar angka Season 2 tidak terambil
+            let match = firstEpTitle.match(/(?:Episode|Eps|Ep)\s*(\d+(\.\d+)?)/i);
+            if (match) {
+                newestEpNum = match[1];
+            } else {
+                let nums = firstEpTitle.match(/\d+/g);
+                newestEpNum = nums ? nums[nums.length - 1] : totalEpCount;
+            }
         }
 
         const playIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
@@ -361,8 +369,16 @@ async function loadDetail(url) {
 
         const epGrid = document.getElementById('episode-grid');
         epGrid.innerHTML = data.episodes.map(ep => {
-            let epNumMatch = ep.title.match(/\d+(\.\d+)?/);
-            let displayTitle = epNumMatch ? epNumMatch[0] : ep.title;
+            let displayTitle = '';
+            // FIX: Cari kata Episode/Ep/Eps terlebih dahulu agar angka Season 2 tidak terambil
+            let epNumMatch = ep.title.match(/(?:Episode|Eps|Ep)\s*(\d+(\.\d+)?)/i);
+            
+            if (epNumMatch) {
+                displayTitle = epNumMatch[1];
+            } else {
+                let nums = ep.title.match(/\d+/g);
+                displayTitle = nums ? nums[nums.length - 1] : ep.title;
+            }
             
             if (displayTitle.length > 12) displayTitle = displayTitle.substring(0, 10) + '...';
 
