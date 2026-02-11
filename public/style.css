@@ -788,7 +788,7 @@ h2, h3 {
     top: 0; left: 0;
     width: 100%; height: 100%;
     display: flex;
-    transition: transform 0.5s ease-in-out;
+    /* Efek digeser akan diatur di JS */
 }
 
 .hero-slide {
@@ -801,9 +801,7 @@ h2, h3 {
 .hero-bg {
     width: 100%;
     height: 100%;
-    /* Object-fit menyesuaikan foto poster ke kotak panjang 16:9 dengan elegan */
     object-fit: cover; 
-    /* Fokuskan ke agak atas agar kepala karakter tidak terpotong */
     object-position: center 20%; 
     position: absolute;
     z-index: 1;
@@ -885,7 +883,7 @@ h2, h3 {
     box-shadow: 0 5px 15px rgba(139, 92, 246, 0.4);
 }
 
-/* Responsif Mobile untuk Slider agar TETAP 16:9 dan tidak kotak 1:1 */
+/* Responsif Mobile untuk Slider */
 @media (max-width: 768px) {
     .hero-slider { padding-top: 56.25%; }
     .hero-title { font-size: 1.4rem; }
@@ -893,13 +891,20 @@ h2, h3 {
 
 @media (max-width: 500px) {
     .hero-slider { 
-        padding-top: 60%; /* Sedikit ditambah dari 56% agar muat di HP, tapi tetap landscape/persegi panjang */
+        padding-top: 60%; 
         border-radius: 0; 
         margin-left: -20px; 
         margin-right: -20px; 
-        width: auto;
+        width: calc(100% + 40px); /* Melebarkan slider agar mentok layar */
     }
-    .hero-content { bottom: 15px; }
+    
+    /* UPDATED: Mengatur left: 40px agar teks tidak mepet di tepi kiri HP */
+    .hero-content { 
+        bottom: 15px; 
+        left: 40px; 
+        right: 40px; 
+    }
+    
     .hero-title { font-size: 1.1rem; }
     .hero-btn { width: fit-content; padding: 6px 16px; font-size: 0.85rem; }
 }
