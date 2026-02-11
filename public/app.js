@@ -1,6 +1,5 @@
 const API_BASE = '/api'; 
 
-// --- KONFIGURASI GENRE BERANDA (SMART KEYWORDS) ---
 const HOME_SECTIONS = [
     { title: "Sedang Hangat 🔥", mode: "latest" },
     { title: "Isekai & Fantasy 🌀", queries: ["isekai", "reincarnation", "world", "maou"] },
@@ -11,12 +10,10 @@ const HOME_SECTIONS = [
     { title: "Comedy & Chill 😂", queries: ["comedy", "slice of life", "bocchi", "spy"] }
 ];
 
-// Utility
 const show = (id) => document.getElementById(id).classList.remove('hidden');
 const hide = (id) => document.getElementById(id).classList.add('hidden');
 const loader = (state) => state ? show('loading') : hide('loading');
 
-// --- LOAD DATA HOME (MULTI QUERY & MERGE) ---
 async function loadLatest() {
     loader(true);
     hide('detail-view');
@@ -104,7 +101,6 @@ function renderSection(title, data, container) {
     container.appendChild(sectionDiv);
 }
 
-// --- PENCARIAN (Grid View) ---
 async function handleSearch(manualQuery = null) {
     const searchInput = document.getElementById('searchInput');
     const query = manualQuery || searchInput.value;
@@ -155,7 +151,7 @@ async function handleSearch(manualQuery = null) {
     }
 }
 
-// --- DETAIL ANIME ---
+// --- DETAIL ANIME (Disesuaikan dengan Layout Baru) ---
 async function loadDetail(url) {
     loader(true);
     try {
@@ -185,17 +181,19 @@ async function loadDetail(url) {
         const newestEpUrl = isEpsExist ? data.episodes[0].url : '';
         const oldestEpUrl = isEpsExist ? data.episodes[data.episodes.length - 1].url : '';
         
+        // Ambil jumlah episode asli dari panjang array atau judul episode terbaru
         let newestEpNum = '?';
+        let totalEpCount = isEpsExist ? data.episodes.length : 0;
+        
         if (isEpsExist) {
             const match = data.episodes[0].title.match(/\d+(\.\d+)?/);
-            newestEpNum = match ? match[0] : data.episodes.length;
+            newestEpNum = match ? match[0] : totalEpCount;
         }
 
-        const playIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
+        const playIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
 
         document.getElementById('anime-info').innerHTML = `
             <div class="detail-breadcrumb">Beranda / ${data.title}</div>
-            
             <h1 class="detail-title">${data.title}</h1>
             <div class="detail-subtitle">${info.japanese || data.title}</div>
 
@@ -208,7 +206,7 @@ async function loadDetail(url) {
                     <div class="detail-badges">
                         <span class="badge status">${status.replace(' ', '_')}</span>
                         <span class="badge score">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="#fbbf24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> 
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="#fbbf24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> 
                             ${score}
                         </span>
                         <span class="badge type">${type}</span>
@@ -220,7 +218,7 @@ async function loadDetail(url) {
 
                     <div class="detail-season">${seasonInfo.toUpperCase()}</div>
 
-                    <p class="detail-synopsis">${data.description || 'Tidak ada deskripsi tersedia.'}</p>
+                    <p class="detail-synopsis">${data.description || 'Tidak ada deskripsi tersedia untuk anime ini.'}</p>
 
                     <div class="detail-actions">
                         <button class="btn-action" onclick="${oldestEpUrl ? `loadVideo('${oldestEpUrl}')` : `alert('Belum ada episode')`}">
@@ -236,13 +234,13 @@ async function loadDetail(url) {
             <div class="metadata-grid">
                 <div class="meta-item">
                     <span class="meta-label">STUDIO</span>
-                    <span class="meta-value">${studio.toUpperCase()}</span>
+                    <span class="meta-pill">${studio.toUpperCase()}</span>
                 </div>
                 <div class="meta-item">
                     <span class="meta-label">TOTAL EPS</span>
                     <span class="meta-value">${totalEps}</span>
                 </div>
-                <div class="meta-item">
+                <div class="meta-item" style="grid-column: span 2;">
                     <span class="meta-label">DURASI</span>
                     <span class="meta-value">${duration}</span>
                 </div>
@@ -252,7 +250,7 @@ async function loadDetail(url) {
         document.getElementById('episode-header-container').innerHTML = `
             <div class="ep-header-wrapper">
                 <h2 class="ep-header-title">Daftar Episode</h2>
-                ${isEpsExist ? `<div class="ep-range-badge">1 - ${data.episodes.length}</div>` : ''}
+                ${isEpsExist ? `<div class="ep-range-badge">1 - ${totalEpCount}</div>` : ''}
             </div>
         `;
 
@@ -272,7 +270,6 @@ async function loadDetail(url) {
     }
 }
 
-// --- NONTON VIDEO ---
 async function loadVideo(url) {
     loader(true);
     try {
@@ -313,7 +310,6 @@ function changeServer(url, btn) {
     btn.classList.add('active');
 }
 
-// Navigasi
 function goHome() { loadLatest(); }
 function backToDetail() {
     hide('watch-view');
@@ -321,7 +317,6 @@ function backToDetail() {
     document.getElementById('video-player').src = ''; 
 }
 
-// Sidebar
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebar-overlay');
@@ -329,7 +324,6 @@ function toggleSidebar() {
     overlay.classList.toggle('active');
 }
 
-// Init
 document.addEventListener('DOMContentLoaded', loadLatest);
 document.getElementById('searchInput').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') handleSearch();
