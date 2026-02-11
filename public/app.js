@@ -10,8 +10,18 @@ const HOME_SECTIONS = [
     { title: "Comedy & Chill 😂", queries: ["comedy", "slice of life", "bocchi", "spy"] }
 ];
 
+let sliderInterval;
+
 const show = (id) => document.getElementById(id).classList.remove('hidden');
-const hide = (id) => document.getElementById(id).classList.add('hidden');
+
+// Update fungsi hide agar menghentikan slider saat ganti halaman
+const hide = (id) => {
+    document.getElementById(id).classList.add('hidden');
+    if (id === 'home-view' && sliderInterval) {
+        clearInterval(sliderInterval);
+    }
+};
+
 const loader = (state) => state ? show('loading') : hide('loading');
 
 async function loadLatest() {
@@ -24,37 +34,66 @@ async function loadLatest() {
     homeContainer.innerHTML = ''; 
 
     try {
-        for (const section of HOME_SECTIONS) {
+        HOME_SECTIONS.forEach(async (section, i) => {
             let combinedData = [];
 
             if (section.mode === 'latest') {
                 try {
                     const res = await fetch(`${API_BASE}/latest`);
                     combinedData = await res.json();
-                } catch (e) { console.error("Gagal load latest", e); }
+                } catch (e) { 
+                    console.error("Gagal load latest", e); 
+                }
             } else {
                 const promises = section.queries.map(q => 
                     fetch(`${API_BASE}/search?q=${encodeURIComponent(q)}`)
                         .then(res => res.json())
                         .catch(() => [])
                 );
-
                 const results = await Promise.all(promises);
-                
                 results.forEach(list => {
                     if(Array.isArray(list)) combinedData = [...combinedData, ...list];
                 });
-
                 combinedData = removeDuplicates(combinedData, 'url');
             }
 
             if (combinedData && combinedData.length > 0) {
-                if (combinedData.length < 6) {
-                    combinedData = [...combinedData, ...combinedData, ...combinedData]; 
+                // LOGIKA BARU UNTUK SLIDER HANGAT
+                if (i === 0) {
+                    // AMBIL 10 DATA UNTUK SLIDER
+                    let sliderData = combinedData.slice(0, 10);
+                    
+                    // FETCH DETAIL ASLI (REAL DATA: SKOR & TAHUN) SECARA BACKGROUND
+                    const enrichedData = await Promise.all(sliderData.map(async (item) => {
+                        try {
+                            const detailRes = await fetch(`${API_BASE}/detail?url=${encodeURIComponent(item.url)}`);
+                            const detailData = await detailRes.json();
+                            if (detailData && detailData.info) {
+                                item.score = detailData.info.skor || detailData.info.score || 'N/A';
+                                item.type = detailData.info.tipe || detailData.info.type || 'Anime';
+                                const musim = detailData.info.musim || detailData.info.season || '';
+                                const rilis = detailData.info.dirilis || detailData.info.released || '';
+                                item.year = `${musim} ${rilis}`.trim() || 'Unknown';
+                            }
+                        } catch (e) {
+                            item.score = 'N/A';
+                            item.type = 'Anime';
+                            item.year = 'Unknown';
+                        }
+                        return item;
+                    }));
+
+                    renderHeroSlider(section.title, enrichedData, homeContainer);
+                } 
+                // LOGIKA LAMA UNTUK SCROLL HORIZONTAL
+                else {
+                    if (combinedData.length < 6) {
+                        combinedData = [...combinedData, ...combinedData, ...combinedData]; 
+                    }
+                    renderSection(section.title, combinedData.slice(0, 15), homeContainer);
                 }
-                renderSection(section.title, combinedData.slice(0, 15), homeContainer);
             }
-        }
+        });
     } catch (err) {
         console.error(err);
     } finally {
@@ -66,6 +105,72 @@ function removeDuplicates(array, key) {
     return [ ...new Map(array.map(item => [item[key], item])).values() ];
 }
 
+// FUNGSI BARU UNTUK RENDER SLIDER
+function renderHeroSlider(title, data, container) {
+    const sectionContainer = document.createElement('div');
+    sectionContainer.className = 'hero-section-container';
+
+    const sliderDiv = document.createElement('div');
+    sliderDiv.className = 'hero-slider';
+
+    const slidesHtml = data.map((anime, index) => {
+        const score = anime.score || 'N/A';
+        const type = anime.type || 'Anime';
+        const year = anime.year || 'Unknown';
+        
+        let epNumMatch = anime.episode ? anime.episode.match(/\d+(\.\d+)?/) : null;
+        let eps = epNumMatch ? `Ep ${epNumMatch[0]}` : (anime.episode ? `Ep ${anime.episode}` : '');
+
+        return `
+            <div class="hero-slide">
+                <img src="${anime.image}" class="hero-bg" alt="${anime.title}" loading="${index === 0 ? 'eager' : 'lazy'}">
+                <div class="hero-overlay"></div>
+                <div class="hero-content">
+                    ${eps ? `<div class="hero-badge">${eps}</div>` : ''}
+                    <h2 class="hero-title">${anime.title}</h2>
+                    <div class="hero-meta">
+                        <span>⭐ ${score}</span> • <span>${type}</span> • <span>${year}</span>
+                    </div>
+                    <button onclick="loadDetail('${anime.url}')" class="hero-btn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                        Nonton Sekarang
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    sliderDiv.innerHTML = `<div class="hero-wrapper" id="heroWrapper">${slidesHtml}</div>`;
+    sectionContainer.appendChild(sliderDiv);
+    
+    // Memastikan letak slider ada di urutan paling atas beranda
+    if (container.firstChild) {
+        container.insertBefore(sectionContainer, container.firstChild);
+    } else {
+        container.appendChild(sectionContainer);
+    }
+
+    const wrapper = document.getElementById('heroWrapper');
+    let currentSlide = 0;
+    const totalSlides = data.length;
+
+    if (sliderInterval) {
+        clearInterval(sliderInterval);
+    }
+
+    // Geser setiap 5 detik
+    sliderInterval = setInterval(() => {
+        currentSlide++;
+        if (currentSlide >= totalSlides) {
+            currentSlide = 0;
+        }
+        if(wrapper) {
+            wrapper.style.transform = `translateX(-${currentSlide * 100}%)`;
+        }
+    }, 5000); 
+}
+
+// SEMUA FUNGSI DI BAWAH INI ADALAH KODE LAMA DAN TIDAK ADA YANG BERUBAH
 function renderSection(title, data, container) {
     const sectionDiv = document.createElement('div');
     sectionDiv.className = 'category-section';
@@ -151,7 +256,6 @@ async function handleSearch(manualQuery = null) {
     }
 }
 
-// --- DETAIL ANIME ---
 async function loadDetail(url) {
     loader(true);
     try {
@@ -167,7 +271,6 @@ async function loadDetail(url) {
         const score = info.skor || info.score || '0';
         const type = info.tipe || info.type || 'TV';
         
-        // UPDATED: Studio menggunakan nama web sesuai permintaan
         const studio = "NimeStream"; 
         
         const totalEps = info.total_episode || info.episode || '?';
@@ -258,11 +361,9 @@ async function loadDetail(url) {
 
         const epGrid = document.getElementById('episode-grid');
         epGrid.innerHTML = data.episodes.map(ep => {
-            // UPDATED: Ambil angka pasti dari judul agar box menampilkan angka aslinya
             let epNumMatch = ep.title.match(/\d+(\.\d+)?/);
             let displayTitle = epNumMatch ? epNumMatch[0] : ep.title;
             
-            // Batasi jika judul aneh / masih terlalu panjang
             if (displayTitle.length > 12) displayTitle = displayTitle.substring(0, 10) + '...';
 
             return `<div class="ep-box" title="${ep.title}" onclick="loadVideo('${ep.url}')">${displayTitle}</div>`;
@@ -315,7 +416,10 @@ function changeServer(url, btn) {
     btn.classList.add('active');
 }
 
-function goHome() { loadLatest(); }
+function goHome() { 
+    loadLatest(); 
+}
+
 function backToDetail() {
     hide('watch-view');
     show('detail-view');
