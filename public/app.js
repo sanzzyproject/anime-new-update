@@ -60,28 +60,35 @@ async function loadLatest() {
                 if (i === 0) {
                     let sliderData = combinedData.slice(0, 10);
                     
-                    const enrichedData = await Promise.all(sliderData.map(async (item) => {
+                    // FIX LOADING LAMA:
+                    // Render UI slider secara instan menggunakan data dasar (judul, gambar, dll)
+                    renderHeroSlider(section.title, sliderData, homeContainer);
+                    
+                    // Update Skor Bintang & Tahun secara otomatis di latar belakang
+                    // Tanpa menahan layar rendering slider!
+                    sliderData.forEach(async (item) => {
                         try {
                             const detailRes = await fetch(`${API_BASE}/detail?url=${encodeURIComponent(item.url)}`);
                             const detailData = await detailRes.json();
                             if (detailData && detailData.info) {
-                                item.score = detailData.info.skor || detailData.info.score || 'N/A';
-                                item.type = detailData.info.tipe || detailData.info.type || 'Anime';
+                                const score = detailData.info.skor || detailData.info.score || 'N/A';
+                                const type = detailData.info.tipe || detailData.info.type || 'Anime';
                                 const musim = detailData.info.musim || detailData.info.season || '';
                                 const rilis = detailData.info.dirilis || detailData.info.released || '';
-                                item.year = `${musim} ${rilis}`.trim() || 'Unknown';
+                                const year = `${musim} ${rilis}`.trim() || 'Unknown';
+                                
+                                // Cari elemen HTML khusus anime ini di dalam DOM lalu replace isi teksnya
+                                const metaElements = document.querySelectorAll(`.hero-meta[data-url="${item.url}"]`);
+                                metaElements.forEach(el => {
+                                    el.innerHTML = `<span>⭐ ${score}</span> • <span>${type}</span> • <span>${year}</span>`;
+                                });
                             }
                         } catch (e) {
-                            item.score = 'N/A';
-                            item.type = 'Anime';
-                            item.year = 'Unknown';
+                            // Abaikan error (biarkan menggunakan N/A sebagai fallback default)
                         }
-                        return item;
-                    }));
+                    });
 
-                    renderHeroSlider(section.title, enrichedData, homeContainer);
-                } 
-                else {
+                } else {
                     if (combinedData.length < 6) {
                         combinedData = [...combinedData, ...combinedData, ...combinedData]; 
                     }
@@ -110,6 +117,7 @@ function renderHeroSlider(title, data, container) {
     const loopData = [...data, data[0]];
 
     const slidesHtml = loopData.map((anime, index) => {
+        // Fallback default sementara data belum tersedot
         const score = anime.score || 'N/A';
         const type = anime.type || 'Anime';
         const year = anime.year || 'Unknown';
@@ -124,7 +132,7 @@ function renderHeroSlider(title, data, container) {
                 <div class="hero-content">
                     ${eps ? `<div class="hero-badge">${eps}</div>` : ''}
                     <h2 class="hero-title">${anime.title}</h2>
-                    <div class="hero-meta">
+                    <div class="hero-meta" data-url="${anime.url}">
                         <span>⭐ ${score}</span> • <span>${type}</span> • <span>${year}</span>
                     </div>
                     <button onclick="loadDetail('${anime.url}')" class="hero-btn">
@@ -256,7 +264,6 @@ async function handleSearch(manualQuery = null) {
     }
 }
 
-// BUG EPISODE FIX (Mengabaikan angka dari "Season 2", dll)
 async function loadDetail(url) {
     loader(true);
     try {
@@ -293,7 +300,6 @@ async function loadDetail(url) {
         
         if (isEpsExist) {
             let firstEpTitle = data.episodes[0].title;
-            // FIX: Cari kata Episode/Ep/Eps terlebih dahulu agar angka Season 2 tidak terambil
             let match = firstEpTitle.match(/(?:Episode|Eps|Ep)\s*(\d+(\.\d+)?)/i);
             if (match) {
                 newestEpNum = match[1];
@@ -370,7 +376,6 @@ async function loadDetail(url) {
         const epGrid = document.getElementById('episode-grid');
         epGrid.innerHTML = data.episodes.map(ep => {
             let displayTitle = '';
-            // FIX: Cari kata Episode/Ep/Eps terlebih dahulu agar angka Season 2 tidak terambil
             let epNumMatch = ep.title.match(/(?:Episode|Eps|Ep)\s*(\d+(\.\d+)?)/i);
             
             if (epNumMatch) {
