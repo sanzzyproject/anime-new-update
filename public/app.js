@@ -151,7 +151,7 @@ async function handleSearch(manualQuery = null) {
     }
 }
 
-// --- DETAIL ANIME (Disesuaikan dengan Layout Baru) ---
+// --- DETAIL ANIME ---
 async function loadDetail(url) {
     loader(true);
     try {
@@ -166,7 +166,10 @@ async function loadDetail(url) {
         const status = info.status || 'Ongoing';
         const score = info.skor || info.score || '0';
         const type = info.tipe || info.type || 'TV';
-        const studio = info.studio || '-';
+        
+        // UPDATED: Studio menggunakan nama web sesuai permintaan
+        const studio = "NimeStream"; 
+        
         const totalEps = info.total_episode || info.episode || '?';
         const duration = info.durasi || info.duration || '0 Menit';
         
@@ -181,7 +184,6 @@ async function loadDetail(url) {
         const newestEpUrl = isEpsExist ? data.episodes[0].url : '';
         const oldestEpUrl = isEpsExist ? data.episodes[data.episodes.length - 1].url : '';
         
-        // Ambil jumlah episode asli dari panjang array atau judul episode terbaru
         let newestEpNum = '?';
         let totalEpCount = isEpsExist ? data.episodes.length : 0;
         
@@ -250,17 +252,20 @@ async function loadDetail(url) {
         document.getElementById('episode-header-container').innerHTML = `
             <div class="ep-header-wrapper">
                 <h2 class="ep-header-title">Daftar Episode</h2>
-                ${isEpsExist ? `<div class="ep-range-badge">1 - ${totalEpCount}</div>` : ''}
+                ${isEpsExist ? `<div class="ep-range-badge">1 - ${newestEpNum}</div>` : ''}
             </div>
         `;
 
         const epGrid = document.getElementById('episode-grid');
         epGrid.innerHTML = data.episodes.map(ep => {
-            let epNumMatch = ep.title.match(/(?:Episode|Ep)\s*(\d+(\.\d+)?)/i);
-            let displayTitle = epNumMatch ? epNumMatch[1] : ep.title.replace(/Episode/i, '').trim();
-            if(displayTitle.length > 6) displayTitle = 'Ep'; 
+            // UPDATED: Ambil angka pasti dari judul agar box menampilkan angka aslinya
+            let epNumMatch = ep.title.match(/\d+(\.\d+)?/);
+            let displayTitle = epNumMatch ? epNumMatch[0] : ep.title;
+            
+            // Batasi jika judul aneh / masih terlalu panjang
+            if (displayTitle.length > 12) displayTitle = displayTitle.substring(0, 10) + '...';
 
-            return `<div class="ep-box" onclick="loadVideo('${ep.url}')">${displayTitle}</div>`;
+            return `<div class="ep-box" title="${ep.title}" onclick="loadVideo('${ep.url}')">${displayTitle}</div>`;
         }).join('');
 
     } catch (err) {
