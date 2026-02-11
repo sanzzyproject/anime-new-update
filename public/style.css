@@ -768,14 +768,13 @@ h2, h3 {
 }
 
 
-/* --- NEW HERO SLIDER STYLES (HANYA INI YANG BARU) --- */
+/* --- NEW HERO SLIDER STYLES --- */
 .hero-section-container {
     margin-bottom: 30px;
 }
 .hero-slider {
     position: relative;
     width: 100%;
-    /* Mengunci ke Rasio 16:9 persis seperti resolusi YouTube */
     padding-top: 56.25%; 
     overflow: hidden;
     border-radius: 12px;
@@ -788,7 +787,6 @@ h2, h3 {
     top: 0; left: 0;
     width: 100%; height: 100%;
     display: flex;
-    /* Efek digeser akan diatur di JS */
 }
 
 .hero-slide {
@@ -883,7 +881,6 @@ h2, h3 {
     box-shadow: 0 5px 15px rgba(139, 92, 246, 0.4);
 }
 
-/* Responsif Mobile untuk Slider */
 @media (max-width: 768px) {
     .hero-slider { padding-top: 56.25%; }
     .hero-title { font-size: 1.4rem; }
@@ -895,16 +892,13 @@ h2, h3 {
         border-radius: 0; 
         margin-left: -20px; 
         margin-right: -20px; 
-        width: calc(100% + 40px); /* Melebarkan slider agar mentok layar */
+        width: calc(100% + 40px); 
     }
-    
-    /* UPDATED: Mengatur left: 40px agar teks tidak mepet di tepi kiri HP */
     .hero-content { 
         bottom: 15px; 
         left: 40px; 
         right: 40px; 
     }
-    
     .hero-title { font-size: 1.1rem; }
     .hero-btn { width: fit-content; padding: 6px 16px; font-size: 0.85rem; }
 }
