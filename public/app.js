@@ -60,12 +60,8 @@ async function loadLatest() {
                 if (i === 0) {
                     let sliderData = combinedData.slice(0, 10);
                     
-                    // FIX LOADING LAMA:
-                    // Render UI slider secara instan menggunakan data dasar (judul, gambar, dll)
                     renderHeroSlider(section.title, sliderData, homeContainer);
                     
-                    // Update Skor Bintang & Tahun secara otomatis di latar belakang
-                    // Tanpa menahan layar rendering slider!
                     sliderData.forEach(async (item) => {
                         try {
                             const detailRes = await fetch(`${API_BASE}/detail?url=${encodeURIComponent(item.url)}`);
@@ -77,14 +73,13 @@ async function loadLatest() {
                                 const rilis = detailData.info.dirilis || detailData.info.released || '';
                                 const year = `${musim} ${rilis}`.trim() || 'Unknown';
                                 
-                                // Cari elemen HTML khusus anime ini di dalam DOM lalu replace isi teksnya
                                 const metaElements = document.querySelectorAll(`.hero-meta[data-url="${item.url}"]`);
                                 metaElements.forEach(el => {
                                     el.innerHTML = `<span>⭐ ${score}</span> • <span>${type}</span> • <span>${year}</span>`;
                                 });
                             }
                         } catch (e) {
-                            // Abaikan error (biarkan menggunakan N/A sebagai fallback default)
+                            // Abaikan error
                         }
                     });
 
@@ -117,7 +112,6 @@ function renderHeroSlider(title, data, container) {
     const loopData = [...data, data[0]];
 
     const slidesHtml = loopData.map((anime, index) => {
-        // Fallback default sementara data belum tersedot
         const score = anime.score || 'N/A';
         const type = anime.type || 'Anime';
         const year = anime.year || 'Unknown';
@@ -458,3 +452,16 @@ document.addEventListener('DOMContentLoaded', loadLatest);
 document.getElementById('searchInput').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') handleSearch();
 });
+
+// --- PWA SERVICE WORKER REGISTRATION (HANYA INI YANG DITAMBAHKAN) ---
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then(registration => {
+                console.log('NimeStream PWA Registered:', registration.scope);
+            })
+            .catch(error => {
+                console.log('PWA Registration Failed:', error);
+            });
+    });
+}
