@@ -5,17 +5,20 @@
   "display": "standalone",
   "background_color": "#050505",
   "theme_color": "#050505",
-  "orientation": "portrait-primary",
+  "orientation": "portrait",
+  "scope": "./",
   "icons": [
     {
-      "src": "icons/icon-192x192.png",
+      "src": "https://ui-avatars.com/api/?name=NS&background=8b5cf6&color=fff&rounded=true&size=192&format=png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "icons/icon-512x512.png",
+      "src": "https://ui-avatars.com/api/?name=NS&background=8b5cf6&color=fff&rounded=true&size=512&format=png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
